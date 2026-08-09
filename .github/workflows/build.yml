@@ -1,0 +1,162 @@
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      stack:
+        type: string
+        required: true
+    outputs:
+      artifact-name:
+        description: "Actions artifact containing the packaged build"
+        value: ${{ jobs.build.outputs.artifact-name }}
+      artifact-uploaded:
+        description: "Whether the packaged build was uploaded"
+        value: ${{ jobs.build.outputs.artifact-uploaded }}
+  workflow_dispatch:
+    inputs:
+      stack:
+        description: "Stack to run for (python|node|go|java|dotnet)"
+        type: choice
+        options: [python, node, go, java, dotnet]
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ inputs.stack }} build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      artifact-name: ${{ steps.artifact.outputs.name }}
+      artifact-uploaded: ${{ steps.artifact.outputs.uploaded }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate stack input
+        env:
+          STACK: ${{ inputs.stack }}
+        run: |
+          case "$STACK" in
+            python|node|go|java|dotnet) ;;
+            *)
+              echo "::error::Unsupported stack: $STACK"
+              exit 64
+              ;;
+          esac
+
+      # --- per-stack toolchain setup ---
+      - name: Setup Python
+        if: inputs.stack == 'python'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install Python dev deps
+        if: inputs.stack == 'python'
+        run: pip install ruff mypy pytest pytest-cov build
+
+      - name: Setup Node
+        if: inputs.stack == 'node'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "lts/*"
+          cache: npm
+      - name: Install Node dev deps
+        if: inputs.stack == 'node'
+        run: if [ -f package.json ]; then npm ci; fi
+
+      - name: Setup Go
+        if: inputs.stack == 'go'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Java
+        if: inputs.stack == 'java'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Setup .NET
+        if: inputs.stack == 'dotnet'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "8.0.x"
+
+      # --- build via the stack mapper ---
+      - name: build
+        run: sh -c "$(sh scripts/stack-tools.sh build)"
+
+      - id: artifact
+        name: Package build artifact
+        shell: bash
+        env:
+          STACK: ${{ inputs.stack }}
+        run: |
+          set -euo pipefail
+          inputs=()
+
+          add_tree() {
+            local path="$1"
+            if [[ -d "$path" ]] && [[ -n "$(find "$path" -type f -print -quit)" ]]; then
+              inputs+=("$path")
+            fi
+          }
+
+          case "$STACK" in
+            python)
+              add_tree dist
+              ;;
+            node)
+              add_tree dist
+              add_tree build
+              ;;
+            go)
+              add_tree bin
+              ;;
+            java)
+              while IFS= read -r -d '' path; do
+                inputs+=("$path")
+              done < <(find . -type f \( -path '*/target/*.jar' -o -path '*/build/libs/*.jar' \) -print0)
+              ;;
+            dotnet)
+              while IFS= read -r -d '' path; do
+                inputs+=("$path")
+              done < <(find . -type f -path '*/bin/Release/*' -print0)
+              ;;
+          esac
+
+          if [[ "${#inputs[@]}" -eq 0 ]]; then
+            echo "::error::No supported build output found for stack $STACK"
+            exit 1
+          fi
+
+          asset="$RUNNER_TEMP/template-ai-native-build-${STACK}.tar.gz"
+          tar \
+            --sort=name \
+            --mtime='UTC 1970-01-01' \
+            --owner=0 \
+            --group=0 \
+            --numeric-owner \
+            -czf "$asset" \
+            "${inputs[@]}"
+
+          echo "name=build-${STACK}" >> "$GITHUB_OUTPUT"
+          echo "uploaded=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ runner.temp }}/template-ai-native-build-${{ inputs.stack }}.tar.gz
+          if-no-files-found: error

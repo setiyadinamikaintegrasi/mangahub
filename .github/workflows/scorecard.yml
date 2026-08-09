@@ -1,0 +1,43 @@
+name: scorecard
+
+# OpenSSF Scorecard findings remain advisory. Scanner execution, authenticated
+# publication, and SARIF storage fail closed on this public repository.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 3"   # weekly, Wed 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  scorecard:
+    name: OpenSSF Scorecard (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read          # inspect repository security posture
+      security-events: write  # upload Scorecard SARIF to Code Scanning
+      id-token: write         # authenticate publish_results through OIDC
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_format: sarif
+          results_file: scorecard.sarif
+          publish_results: true
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        with:
+          sarif_file: scorecard.sarif
+          category: scorecard

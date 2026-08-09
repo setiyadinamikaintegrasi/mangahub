@@ -1,0 +1,76 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: Detect stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      stack: ${{ steps.d.outputs.stack }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: d
+        name: Detect stack
+        run: |
+          stack="$(sh scripts/detect-stack.sh)"
+          echo "stack=$stack" >> "$GITHUB_OUTPUT"
+          echo "Detected stack: $stack"
+
+  quality:
+    name: Quality (format/lint/typecheck/unit)
+    needs: detect
+    if: needs.detect.outputs.stack != 'unknown'
+    uses: ./.github/workflows/ci-quality.yml
+    with:
+      stack: ${{ needs.detect.outputs.stack }}
+
+  test:
+    name: Tests + coverage
+    needs: detect
+    if: needs.detect.outputs.stack != 'unknown'
+    uses: ./.github/workflows/ci-test.yml
+    with:
+      stack: ${{ needs.detect.outputs.stack }}
+
+  build:
+    name: Build
+    needs: detect
+    if: needs.detect.outputs.stack != 'unknown'
+    uses: ./.github/workflows/build.yml
+    with:
+      stack: ${{ needs.detect.outputs.stack }}
+
+  attest:
+    name: Attest build provenance
+    needs: [detect, build]
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.detect.result == 'success' &&
+      (needs.build.result == 'success' ||
+      (needs.build.result == 'skipped' &&
+      needs.detect.outputs.stack == 'unknown'))
+    permissions:
+      contents: read       # resolve repository metadata for provenance
+      id-token: write      # request the OIDC identity used to sign provenance
+      attestations: write  # persist the build-provenance attestation
+    uses: ./.github/workflows/artifact-attestation.yml
+    with:
+      artifact-name: ${{ needs.build.outputs.artifact-name || '' }}
+      artifact-uploaded: ${{ needs.build.outputs.artifact-uploaded == 'true' }}

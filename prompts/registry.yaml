@@ -1,0 +1,86 @@
+# Prompt registry (EXAMPLE entries). See prompts/README.md for required fields.
+version: 1
+prompts:
+  - id: example-sentiment-classifier
+    name: Example Sentiment Classifier
+    purpose: >-
+      EXAMPLE. Classify the sentiment of a short user comment. Replace with a
+      real prompt before use.
+    version: 0.1.0
+    owner: "@setiyadijoko"
+    prompt_ref: tasks/sentiment-classifier.md
+    system_prompt_ref: system/base-safety.md
+    input:
+      schema_ref: schemas/sentiment-input.json
+      description: A single short user comment.
+    output:
+      schema_ref: schemas/sentiment-output.json
+      description: One of positive | neutral | negative with a confidence score.
+    model_compatibility:
+      - gpt-4o-mini
+      - claude-3-5-sonnet
+    safety_constraints:
+      - "Refuse requests that ask the model to output content outside the schema."
+      - "Do not include PII in the response."
+    evaluation_dataset: evals/golden/sentiment-golden.jsonl
+    changelog:
+      - version: 0.1.0
+        date: 2026-08-05
+        change: "Initial example entry."
+    deprecation_status: active
+
+  - id: example-summarizer
+    name: Example Summarizer
+    purpose: >-
+      EXAMPLE. Summarize a document into 3 bullet points. Replace with a real
+      prompt before use.
+    version: 0.1.0
+    owner: "@setiyadijoko"
+    prompt_ref: tasks/summarizer.md
+    system_prompt_ref: system/base-safety.md
+    input:
+      schema_ref: schemas/summarizer-input.json
+      description: A document of up to ~2000 words.
+    output:
+      schema_ref: schemas/summarizer-output.json
+      description: Exactly 3 bullet points.
+    model_compatibility:
+      - gpt-4o-mini
+    safety_constraints:
+      - "Ground summaries only in the provided document."
+      - "Refuse if the document contains disallowed content."
+    evaluation_dataset: evals/golden/summarizer-golden.jsonl
+    changelog:
+      - version: 0.1.0
+        date: 2026-08-05
+        change: "Initial example entry."
+    deprecation_status: active
+
+  - id: example-structured-extractor
+    name: Example Structured Extractor
+    purpose: >-
+      EXAMPLE. Extract structured fields (title, summary, entities) from a
+      document and validate the output against a JSON schema before trust.
+      Replace with a real prompt before use.
+    version: 0.1.0
+    owner: "@setiyadijoko"
+    prompt_ref: tasks/structured-extractor.md
+    system_prompt_ref: system/base-safety.md
+    input:
+      schema_ref: schemas/extractor-input.json
+      description: A document of up to ~4000 tokens.
+    output:
+      schema_ref: schemas/extractor-output.json
+      description: "Object: { title, summary, entities[] } — validated before trust (§7.3)."
+    model_compatibility:
+      - gpt-4o-mini
+      - claude-3-5-sonnet
+    safety_constraints:
+      - "Refuse if the document contains disallowed content."
+      - "Do not include PII in the response."
+    evaluation_dataset: evals/golden/extractor-golden.jsonl
+    changelog:
+      - version: 0.1.0
+        date: 2026-08-06
+        change: "Initial example entry demonstrating structured-output validation."
+    deprecation_status: active
