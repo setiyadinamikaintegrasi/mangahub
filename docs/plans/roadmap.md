@@ -40,20 +40,21 @@ unchanged until the compatibility design is approved.
 - Add an ADR covering workflow activation, required check contexts, and
   migration for existing consumers.
 
-### P1 — explicit monorepo layout (foundation)
+### P1 — explicit monorepo layout and component CI
 
 Completed foundation:
 
 - Ask for `single`, `monorepo`, or `undecided` during consumer initialization.
 - Validate `.template/project.yaml` and record the primary component path.
-- Keep monorepo stack detection fail-safe until component-aware CI execution is
-  approved.
+- Resolve version-2 component manifests explicitly and run the reusable
+  component-aware workflow with stable aggregate and component checks.
 
-Remaining design work:
+Pilot follow-up:
 
-- Define component fan-out, artifact ownership, and required check contexts
-  before enabling nested service workflows; the proposed contract is recorded
-  in [ADR-0007](../adr/0007-component-aware-monorepo-ci-contract.md).
+- Measure remote CI duration, check noise, fork behavior, and artifact
+  ownership before adding the aggregate check to branch protection. The
+  accepted contract is recorded in
+  [ADR-0007](../adr/0007-component-aware-monorepo-ci-contract.md).
 
 ### P2 — bootstrap extensions and workflow activation (future)
 

@@ -76,16 +76,23 @@ and `other`. Layout values are `single`, `monorepo`, and `undecided`. Use
 
 When the command is run interactively without `--layout`, it asks whether the
 repository contains one application or multiple applications/services. For a
-monorepo, also provide the primary component path:
+monorepo, also provide the primary component path. Then declare each component
+explicitly in `.template/project.yaml` so mixed stacks are not guessed by CI:
 
 ```sh
 ./scripts/init-project.sh \
   --name ev-charge-tracker \
   --description "EV charging tracker" \
-  --stack go \
+  --stack auto \
   --layout monorepo \
-  --primary-path src/backend
+  --component backend=src/backend:go \
+  --component frontend=src/frontend:node
 ```
+
+For a mixed-stack monorepo, each `--component` is written to the version-2
+`.template/project.yaml` contract. The reusable monorepo workflow then runs
+each component in its own working directory and uploads component-owned build
+artifacts.
 
 The initializer changes only the marked project identity block in `README.md`
 and writes the credential-free `.template/project.yaml` layout declaration. It
@@ -131,8 +138,8 @@ tests/e2e/           critical user journeys only
 
 The template detects a primary Python, Node.js, Go, Java, or .NET stack from
 supported manifests in the repository root or directly under `src/`. A
-declared monorepo currently fails safe as `unknown`; component-aware CI is a
-future step and will not guess which service to build.
+version-2 monorepo uses its explicit component list rather than guessing which
+service to build.
 
 ## 6. Run the local checks
 
@@ -244,11 +251,12 @@ markers or update it manually instead of forcing the script.
 
 ### The detector reports a monorepo as `unknown`
 
-This is intentional for now. The repository records the layout and primary
-path, but the current reusable workflows execute one stack from the repository
-root or `src/`. Returning `unknown` is safer than running Go tooling against a
-Node.js frontend or the reverse. Component-aware CI will be added only after
-the execution contract is approved.
+This is intentional for single-stack detection. A version-2 monorepo is
+resolved by `scripts/resolve-components.sh` and dispatched to
+`ci-monorepo.yml`; do not add a root-level symlink or rely on manifest order.
+If the resolver reports an error, validate `.template/project.yaml` and ensure
+every component has a safe path, supported stack, required flag, and unique
+artifact name.
 
 ### `make docs-check` skips tools
 

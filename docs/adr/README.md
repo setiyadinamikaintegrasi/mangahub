@@ -24,5 +24,5 @@ Use the template at [../templates/adr-template.md](../templates/adr-template.md)
 | [0004](0004-integrate-structural-and-semantic-review.md) | Integrate structural and semantic PR review | Accepted | 2026-08-07 |
 | [0005](0005-adopt-graphify-as-optional-codebase-memory.md) | Adopt Graphify as optional codebase memory | Accepted | 2026-08-07 |
 | [0006](0006-explicit-project-layout.md) | Declare project layout before stack detection | Accepted | 2026-08-08 |
-| [0007](0007-component-aware-monorepo-ci-contract.md) | Define a component-aware monorepo CI contract | Proposed | 2026-08-09 |
+| [0007](0007-component-aware-monorepo-ci-contract.md) | Adopt a component-aware monorepo CI contract | Accepted for MangaHub pilot | 2026-08-09 |
 | [0008](0008-adopt-go-echo-pg-react-colly-for-mangahub.md) | Adopt Go + Echo + PostgreSQL + React + Colly for MangaHub | Accepted | 2026-08-09 |

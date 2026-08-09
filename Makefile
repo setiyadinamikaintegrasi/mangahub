@@ -91,6 +91,7 @@ test-scripts:
 	@sh scripts/test/test-prompt-eval-assets.sh
 	@sh scripts/test/test-init-project.sh
 	@sh scripts/test/test-project-config.sh
+	@sh scripts/test/test-monorepo-ci.sh
 	@sh scripts/test/test-openapi-contract.sh
 
 ci: format-check lint docs-check readiness-check project-config-check
