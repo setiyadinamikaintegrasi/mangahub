@@ -1,4 +1,4 @@
-# ADR-0007: Adopt Go + Echo + PostgreSQL + React + Colly for MangaHub
+# ADR-0008: Adopt Go + Echo + PostgreSQL + React + Colly for MangaHub
 
 **Date:** 2026-08-09
 **Status:** Accepted

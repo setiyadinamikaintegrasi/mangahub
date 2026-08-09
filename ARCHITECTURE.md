@@ -21,11 +21,11 @@ stores proxied images.
 
 ## Key design decisions
 
-See `docs/adr/0007-adopt-go-echo-pg-react-colly-for-mangahub.md` for rationale.
+See `docs/adr/0008-adopt-go-echo-pg-react-colly-for-mangahub.md` for rationale.
 
 ## Topology
 
-```
+```text
 User Browser ──→ Frontend (React SPA)
                       │
                       ▼
