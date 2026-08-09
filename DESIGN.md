@@ -10,7 +10,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 
 ## Architecture
 
-```
+```text
 ┌──────────────────────────────────────────────┐
 │                  Frontend                     │
 │  React + Vite + Tailwind (port 5175 dev)     │
@@ -42,6 +42,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 ## Data model
 
 ### `users`
+
 | Column | Type | Notes |
 |---|---|---|
 | id | UUID PK | |
@@ -53,6 +54,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | created_at | TIMESTAMPTZ | |
 
 ### `sources`
+
 | Column | Type | Notes |
 |---|---|---|
 | id | UUID PK | |
@@ -63,6 +65,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | created_at | TIMESTAMPTZ | |
 
 ### `mangas`
+
 | Column | Type | Notes |
 |---|---|---|
 | id | UUID PK | |
@@ -79,6 +82,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | created_at | TIMESTAMPTZ | |
 
 ### `chapters`
+
 | Column | Type | Notes |
 |---|---|---|
 | id | UUID PK | |
@@ -89,6 +93,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | created_at | TIMESTAMPTZ | |
 
 ### `library_entries`
+
 | Column | Type | Notes |
 |---|---|---|
 | id | UUID PK | |
@@ -99,6 +104,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | UNIQUE(user_id, manga_id) | | |
 
 ### `reading_history`
+
 | Column | Type | Notes |
 |---|---|---|
 | id | UUID PK | |
@@ -110,6 +116,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | UNIQUE(user_id, chapter_id) | | |
 
 ### `reading_lists`
+
 | Column | Type | Notes |
 |---|---|---|
 | id | UUID PK | |
@@ -121,6 +128,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | created_at | TIMESTAMPTZ | |
 
 ### `reading_list_items`
+
 | Column | Type | Notes |
 |---|---|---|
 | id | UUID PK | |
@@ -131,6 +139,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 ## REST API endpoints
 
 ### Auth
+
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | POST | /api/auth/register | Public | Register user baru |
@@ -138,6 +147,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | GET | /api/auth/me | JWT | Get current user profile |
 
 ### Manga
+
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | /api/mangas | Public | Browse/search manga (?q=&genre=&status=&page=&limit=) |
@@ -145,6 +155,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | GET | /api/mangas/:slug/chapters/:num | JWT | Chapter pages (triggers history tracking) |
 
 ### Reader
+
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | /api/proxy/img | Public | Image proxy — ?url= → cached/streamed image |
@@ -152,6 +163,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | GET | /api/reader/progress/:mangaSlug | JWT | Get last reading position |
 
 ### Library
+
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | /api/library | JWT | User's library |
@@ -160,6 +172,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | DELETE | /api/library/:mangaSlug | JWT | Remove from library |
 
 ### Reading Lists
+
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | /api/lists | Public | Browse public lists |
@@ -169,6 +182,7 @@ React SPA menyajikan UI discovery, library, dan reader modern.
 | DELETE | /api/lists/:slug/items/:mangaSlug | JWT | Remove from list |
 
 ### Admin (admin role only)
+
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | /api/admin/sources | Admin | List all sources |
