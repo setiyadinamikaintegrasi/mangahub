@@ -43,3 +43,8 @@ graphify-out/
 # --- AI provider secrets / local scratch ---
 *.local
 .worktrees/
+
+# --- MangaHub ---
+src/backend/manga-hub
+src/backend/cache/
+src/frontend/tsconfig.tsbuildinfo

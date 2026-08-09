@@ -1,152 +1,221 @@
 # DESIGN.md
 
-**Status:** Template baseline — adapt to your project.
+**Status:** Approved baseline.
 
-`DESIGN.md` is the **approved system-design baseline**. It is not a scratchpad. Feature-specific designs belong in `docs/plans/active/YYYY-MM-DD-<feature>-design.md` and move to `docs/plans/completed/` when shipped.
+## System overview
 
-## Problem statement
+MangaHub adalah aplikasi web multi-user dengan backend Go yang menangani scraping
+sumber manga, caching gambar via proxy, autentikasi JWT, dan REST API. Frontend
+React SPA menyajikan UI discovery, library, dan reader modern.
 
-Teams building AI-native applications need a shared, governed baseline so that quality, security, agent discipline, and production control are consistent across projects — without locking in a stack.
+## Architecture
 
-## Business objectives
-
-- Provide a reusable template that encodes engineering, AI-agent, security, and operational standards.
-- Let consumers adopt any stack via stack-detecting CI.
-- Make production changes human-gated, auditable, and reversible.
-
-## Scope
-
-Governance + documentation + stack-aware CI + security/AI/supply-chain controls (as docs and workflows) + operational readiness guidance. See [PRODUCT.md](PRODUCT.md).
-
-## Out of scope
-
-A committed stack, a concrete deployment target, a working model adapter, DAST/perf/canary/DR automation. See [PRODUCT.md](PRODUCT.md).
-
-## Stakeholders
-
-See [PRODUCT.md](PRODUCT.md) stakeholder groups.
-
-## Personas
-
-See [docs/product/personas.md](docs/product/personas.md).
-
-## Functional requirements
-
-- Provide document-driven governance files (PRODUCT/DESIGN/ARCHITECTURE/AGENTS/ADR).
-- Provide stack-detecting Make + CI that no-op cleanly until a stack is wired.
-- Provide PR quality, security, and AI-evaluation gates.
-- Provide human-gated production deployment and rollback workflows.
-- Provide AI scaffolding (prompts registry, eval framework, model-abstraction guidance).
-
-## Non-functional requirements
-
-See [docs/product/non-functional-requirements.md](docs/product/non-functional-requirements.md). Summary: maintainable, secure by default, observable, reversible, auditable, stack-agnostic.
-
-## Business rules
-
-See [docs/product/business-rules.md](docs/product/business-rules.md).
-
-## System context
-
-See [docs/architecture/system-context.md](docs/architecture/system-context.md). In short: a documentation/governance layer + stack-aware CI, with `src/` consumer-owned.
-
-## Architecture overview
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) and [docs/architecture/container-view.md](docs/architecture/container-view.md).
-
-## Component boundaries
-
-- **Docs/governance** — root markdown + `docs/` (source of truth).
-- **CI/CD** — `.github/workflows/` (stack-aware, least-privilege).
-- **AI apparatus** — `prompts/`, `evals/`, `docs/ai/` (scaffolding + guidance).
-- **Implementation** — `src/`, `tests/` (consumer-owned).
-- **Infrastructure/deployment/observability** — consumer-owned directories with scanning hooks.
-
-## Primary data flows
-
-N/A for the template itself (no runtime). Consumer defines per project; see [docs/architecture/data-flow.md](docs/architecture/data-flow.md).
+```
+┌──────────────────────────────────────────────┐
+│                  Frontend                     │
+│  React + Vite + Tailwind (port 5175 dev)     │
+│  Discover │ Library │ Reader │ Auth │ Profile │
+└──────────────────┬───────────────────────────┘
+                   │ REST API (/api/*)
+                   ▼
+┌──────────────────────────────────────────────┐
+│                  Backend                      │
+│  Go + Echo (port 8200)                        │
+│                                               │
+│  ┌─────────┐ ┌──────────┐ ┌───────────────┐ │
+│  │  Auth    │ │ Scraper  │ │ Image Proxy   │ │
+│  │  (JWT)   │ │ Engine   │ │ (disk cache)  │ │
+│  └─────────┘ └──────────┘ └───────────────┘ │
+│  ┌─────────┐ ┌──────────┐ ┌───────────────┐ │
+│  │ Manga   │ │ Library  │ │ Reading       │ │
+│  │ CRUD    │ │ + Lists  │ │ History       │ │
+│  └─────────┘ └──────────┘ └───────────────┘ │
+└──────┬──────────────┬────────────────────────┘
+       │              │
+       ▼              ▼
+┌────────────┐  ┌──────────────────┐
+│ PostgreSQL │  │ Disk Cache       │
+│ (port 5434)│  │ ./cache/images/  │
+└────────────┘  └──────────────────┘
+```
 
 ## Data model
 
-N/A for the template. See [docs/architecture/data-model.md](docs/architecture/data-model.md).
+### `users`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| username | VARCHAR(50) UNIQUE | |
+| email | VARCHAR(255) UNIQUE | |
+| password_hash | TEXT | bcrypt |
+| role | VARCHAR(20) | 'user' \| 'admin' |
+| avatar_url | TEXT nullable | |
+| created_at | TIMESTAMPTZ | |
 
-## API model
+### `sources`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| name | VARCHAR(100) | e.g. "MangaKita" |
+| base_url | TEXT | Root URL untuk scrape |
+| parser_type | VARCHAR(50) | 'mangakita' \| 'generic' |
+| is_active | BOOLEAN | Admin toggle |
+| created_at | TIMESTAMPTZ | |
 
-N/A for the template. See [docs/api/](docs/api/).
+### `mangas`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| source_id | UUID FK → sources | |
+| title | TEXT | |
+| slug | TEXT | URL-friendly identifier |
+| cover_url | TEXT | Proxied via /api/proxy/img |
+| description | TEXT nullable | |
+| status | VARCHAR(20) | 'ongoing' \| 'completed' |
+| author | TEXT nullable | |
+| artist | TEXT nullable | |
+| genres | TEXT[] | Array of genre tags |
+| last_scraped_at | TIMESTAMPTZ | |
+| created_at | TIMESTAMPTZ | |
 
-## Integration model
+### `chapters`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| manga_id | UUID FK → mangas | |
+| chapter_number | REAL | |
+| title | TEXT nullable | |
+| pages_json | JSONB | Array of image URLs (source URLs) |
+| created_at | TIMESTAMPTZ | |
 
-The template integrates with: GitHub (Actions, Environments, Security tab, Dependabot), and (consumer-wired) AI providers, secret managers, and deployment platforms. See [docs/architecture/integration.md](docs/architecture/integration.md).
+### `library_entries`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| user_id | UUID FK → users | |
+| manga_id | UUID FK → mangas | |
+| status | VARCHAR(20) | 'reading' \| 'completed' \| 'plan_to_read' \| 'dropped' |
+| last_chapter_read | REAL nullable | |
+| UNIQUE(user_id, manga_id) | | |
 
-## Authentication
+### `reading_history`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| user_id | UUID FK → users | |
+| chapter_id | UUID FK → chapters | |
+| page_index | INTEGER | Last page read (0-indexed) |
+| read_mode | VARCHAR(10) | 'vertical' \| 'paged' |
+| updated_at | TIMESTAMPTZ | |
+| UNIQUE(user_id, chapter_id) | | |
 
-N/A for the template. See [docs/api/authentication.md](docs/api/authentication.md).
+### `reading_lists`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| user_id | UUID FK → users | |
+| name | VARCHAR(100) | |
+| slug | TEXT | |
+| is_public | BOOLEAN | |
+| description | TEXT nullable | |
+| created_at | TIMESTAMPTZ | |
 
-## Authorization
+### `reading_list_items`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| list_id | UUID FK → reading_lists | |
+| manga_id | UUID FK → mangas | |
+| added_at | TIMESTAMPTZ | |
 
-Branch protection, CODEOWNERS, GitHub Environment approval for production. See [docs/api/authorization.md](docs/api/authorization.md) and [docs/security/access-control.md](docs/security/access-control.md).
+## REST API endpoints
 
-## Security model
+### Auth
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | /api/auth/register | Public | Register user baru |
+| POST | /api/auth/login | Public | Login, return JWT |
+| GET | /api/auth/me | JWT | Get current user profile |
 
-Least privilege everywhere; secrets never committed; AI output validated before trust; production human-gated. See [docs/security/](docs/security/).
+### Manga
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | /api/mangas | Public | Browse/search manga (?q=&genre=&status=&page=&limit=) |
+| GET | /api/mangas/:slug | Public | Manga detail + chapters list |
+| GET | /api/mangas/:slug/chapters/:num | JWT | Chapter pages (triggers history tracking) |
 
-## AI subsystem
+### Reader
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | /api/proxy/img | Public | Image proxy — ?url= → cached/streamed image |
+| POST | /api/reader/progress | JWT | Save reading progress |
+| GET | /api/reader/progress/:mangaSlug | JWT | Get last reading position |
 
-Stack-agnostic scaffolding: model abstraction via an adapter/gateway layer (no direct SDK calls), prompt registry, structured-output validation, evaluation framework, safety/leakage evals, AI observability. See [docs/ai/](docs/ai/).
+### Library
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | /api/library | JWT | User's library |
+| POST | /api/library | JWT | Add manga to library |
+| PUT | /api/library/:mangaSlug | JWT | Update status / last chapter |
+| DELETE | /api/library/:mangaSlug | JWT | Remove from library |
 
-## Deployment model
+### Reading Lists
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | /api/lists | Public | Browse public lists |
+| GET | /api/lists/:slug | Public | View a public list |
+| POST | /api/lists | JWT | Create reading list |
+| POST | /api/lists/:slug/items | JWT | Add manga to list |
+| DELETE | /api/lists/:slug/items/:mangaSlug | JWT | Remove from list |
 
-Target state after consumer platform activation: local → test (CI) →
-development (on merge) → staging (manual and protected) → production (manual,
-GitHub Environment approval and job-scoped OIDC, promoting the same artifact
-without rebuilding). The current `deploy-*.yml` and `smoke-test.yml` files
-remain skeletons; the template performs and proves none of those environment
-deployments, approvals, OIDC authentication, or health checks. See
-[docs/operations/deployment-guide.md](docs/operations/deployment-guide.md).
+### Admin (admin role only)
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | /api/admin/sources | Admin | List all sources |
+| POST | /api/admin/sources | Admin | Add source |
+| PUT | /api/admin/sources/:id | Admin | Update source |
+| DELETE | /api/admin/sources/:id | Admin | Deactivate source |
+| POST | /api/admin/scrape/:sourceId | Admin | Trigger manual scrape |
 
-## Observability
+## Scraper engine
 
-OpenTelemetry recommended; structured logs with correlation IDs; RED metrics;
-AI telemetry. The Phase 6 validator checks contract and evidence-reference
-shape only and always reports `production_ready=false`; human review, evidence
-freshness, content approval, and production authorization remain separate
-human/platform controls. See
-[docs/operations/observability.md](docs/operations/observability.md).
+Menggunakan `gocolly/colly` (Go scraping framework):
+- Setiap source memiliki `parser_type` yang menentukan CSS selectors
+- Scraper berjalan async (background goroutine), tidak block API
+- Rate limiting: 1 request/second per source, respectful crawling
+- Images tidak di-download saat scrape — hanya URL yang disimpan, di-proxy on-demand
 
-## Failure handling
+## Image proxy
 
-Alerts link responders to runbooks; the documented incident and change
-authority decides whether to stop, mitigate, or request rollback. The Phase 6
-rollback baseline is manual, environment-bound, and fail closed at its unwired
-sentinel, so it performs no rollback. Automated stop or rollback is a future
-consumer-wired target only after an approved platform-specific design defines
-thresholds, authority, execution, recovery verification, and reviewed evidence.
-See [docs/operations/](docs/operations/).
-
-## Testing strategy
-
-See [docs/development/testing-strategy.md](docs/development/testing-strategy.md). Unit/contract/integration/E2E/AI tests; thresholds in spec §8.
-
-## Constraints
-
-Stack-agnostic; MIT; no production target; clean no-op Make targets; least-privilege SHA-pinned workflows. See [PRODUCT.md](PRODUCT.md) constraints.
-
-## Risks
-
-- Consumer skips wiring branch protection (mitigation: `scripts/setup-branch-protection.sh`).
-- Phase-1 workflows pin Actions by tag pending SHA pinning (tracked in `docs/plans/technical-debt.md`).
-- AI-eval skeleton may be mistaken for working evals (mitigation: READMEs mark skeleton-only).
-
-## Assumptions
-
-See [docs/assumptions.md](docs/assumptions.md).
-
-## Unresolved decisions
-
-- Specific stack (consumer decides).
-- Deployment platform (consumer decides).
-- AI provider + model (consumer decides).
+- Endpoint `/api/proxy/img?url=<encoded-source-url>`
+- Cek disk cache → jika ada, serve dari cache
+- Cache miss → fetch dari source, stream to client, save to disk cache
+- Cache key: SHA256(source_url) → file path `./cache/images/ab/cd/<hash>.webp`
+- Cache tidak di-invalidasi otomatis (manual admin purge)
 
 ## Acceptance criteria
 
-See the spec's final acceptance criteria (§14). The template is acceptable when a consumer repo created from it passes all items there.
+1. User dapat register dan login, mendapat JWT token
+2. Admin dapat menambah source manga (URL + parser type)
+3. Admin dapat trigger scrape → manga + chapters tersimpan di DB
+4. User dapat browse katalog manga di halaman Discover
+5. User dapat search manga berdasarkan judul
+6. User dapat melihat detail manga + daftar chapter
+7. Reader menampilkan halaman chapter dengan vertical scroll yang smooth
+8. Reader dapat toggle ke page-by-page mode
+9. Image proxy melayani gambar dari cache atau source asli
+10. User dapat menambahkan manga ke library
+11. User dapat track progres baca (chapter terakhir + halaman terakhir)
+12. User dapat membuat reading list publik
+13. Reading list publik dapat dilihat oleh user lain
+14. Mobile-responsive di semua halaman
+15. Admin-only endpoints ditolak untuk user biasa (403)
+
+## Security considerations
+
+- JWT dengan expiry 24 jam, refresh via re-login
+- Password di-hash dengan bcrypt (cost 10)
+- Image proxy hanya menerima URL dari sources yang terdaftar (no SSRF)
+- Scraper memiliki rate limiting per source
+- CORS di-enable untuk development only
+- SQL injection prevention via parameterized queries
