@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Dark theme defaults — applied to body in index.html */
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #111827; /* gray-900 */
+  color: #f3f4f6; /* gray-100 */
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
+/* Line-clamp helpers are native in Tailwind v4, but keep a fallback. */
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
