@@ -72,7 +72,6 @@ jobs:
   monorepo:
     name: Component-aware monorepo CI
     needs: detect
-    if: needs.detect.outputs.layout == 'monorepo'
     uses: ./.github/workflows/ci-monorepo.yml
 
   attest:
