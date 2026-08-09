@@ -1,6 +1,6 @@
-# ADR-0007: Define a component-aware monorepo CI contract before implementation
+# ADR-0007: Adopt a component-aware monorepo CI contract
 
-- **Status:** Proposed
+- **Status:** Accepted for MangaHub pilot
 - **Date:** 2026-08-09
 - **Decision owners:** Template maintainers and consumer project owners
 
@@ -18,18 +18,18 @@ execution without a contract would also make artifact names, required check
 contexts, path filtering, fork behavior, and branch-protection migration
 ambiguous.
 
-This ADR is a design proposal only. It does not change the current workflows,
-the version-1 project config, or the fail-safe `unknown` result.
+This ADR was initially a design proposal. MangaHub now validates the contract
+with a version-2 project config and the reusable component-aware workflow; the
+template remains backward-compatible for version-1 and single-stack consumers.
 
 ## Decision
 
-Before implementing component-aware CI, validate the following contract with
-at least one real consumer monorepo.
+The MangaHub consumer pilot implements and validates the following contract.
 
 ### 1. Explicit component manifest
 
-Extend the versioned `.template/project.yaml` contract in a future schema
-revision rather than recursively discovering manifests. The proposed shape is:
+The versioned `.template/project.yaml` contract lists components explicitly
+rather than recursively discovering manifests. MangaHub uses this shape:
 
 ```yaml
 version: 2
@@ -59,9 +59,9 @@ single-stack/`unknown` compatibility behavior.
 
 Reusable workflows fan out from the validated component list. Each matrix job
 runs its stack tools with the component path as its working directory and
-receives only the configuration needed for that component. The mapper must
-gain an explicit path input before this is implemented; changing the current
-root-based mapper implicitly is not allowed.
+receives only the configuration needed for that component. The existing mapper
+remains pure; its stack lookup is evaluated from each matrix job's component
+working directory.
 
 Unsupported or invalid required components fail configuration validation before
 tool execution. Optional components may be marked advisory only after the
@@ -143,8 +143,8 @@ Positive:
 
 Trade-offs:
 
-- The template remains `unknown` for declared monorepos until the contract is
-  accepted and implemented.
+- Version-1 consumers remain on the fail-safe `unknown` path; version-2
+  consumers must list components explicitly.
 - Consumer setup requires explicit component metadata rather than discovery.
 - Matrix CI can increase runtime and cost; a pilot must establish limits.
 
@@ -171,7 +171,7 @@ consumer's branch-protection plan before activation.
 ## Migration strategy
 
 1. Keep version-1 configs and no-config repositories unchanged.
-2. Validate this contract against a real consumer monorepo.
+2. Validate this contract against a real consumer monorepo (MangaHub).
 3. Add version-2 schema validation and path-aware mapper support with tests.
 4. Run component checks advisory-only and measure cost, noise, and stability.
 5. Add the aggregate check to branch protection only after a human-approved

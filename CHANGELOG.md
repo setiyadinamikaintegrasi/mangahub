@@ -7,16 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Adopted the template's version-2 component contract and reusable monorepo CI
+  for the Go backend and Node frontend; the consumer-specific component bridge
+  is no longer needed.
+
 ### Added
 - Added proposed ADR-0007 defining the component-aware monorepo CI contract;
-  implementation remains deferred pending a consumer pilot.
+  MangaHub now exercises the contract as the first consumer pilot.
 - Added an illustrative OpenAPI `/health` contract, global bearer-auth default,
   explicit consumer guidance, and a regression contract test.
 - Added an SPDX license-header template and coding-standards guidance for
   consumer source files.
 - Added explicit `single`/`monorepo`/`undecided` layout selection, credential-free
-  project config validation, and fail-safe monorepo detection. Component-aware
-  CI remains deferred until its execution and check-context contract is approved.
+  project config validation, and fail-safe monorepo detection. Version-2
+  component-aware CI is enabled for the backend and frontend.
 - Added a beginner-friendly getting-started guide with quick-start steps,
   required/optional control mapping, terminology, expected results, and
   troubleshooting; linked it from the root README and documentation index.

@@ -27,10 +27,10 @@ primary_path: src/backend
 Supported layouts are `single`, `monorepo`, and `undecided`. The project config
 is validated locally and by `make ci` when present.
 
-Until component-aware reusable workflows are designed and approved, a declared
-`monorepo` returns `unknown` from `scripts/detect-stack.sh`. This is a fail-safe
-choice: the current single-stack workflows must not guess which nested service
-to build or test. Repositories without a config retain compatibility behavior.
+The single-stack detector returns `unknown` for a declared `monorepo`. A
+version-2 config is instead resolved by the dispatcher and reusable
+component-aware workflow; version-1 configs retain the fail-safe compatibility
+behavior. Repositories without a config retain compatibility behavior.
 
 ## Consequences
 
@@ -43,12 +43,10 @@ Positive:
 
 Trade-offs:
 
-- A monorepo currently receives no stack-dependent CI until component-aware
-  workflow execution is implemented.
-- `primary_path` records intent but does not yet make the reusable workflows
-  multi-component aware.
-- A future component-aware design must define fan-out, paths, artifacts, and
-  required check contexts before enabling nested execution.
+- Version-2 monorepos receive component-aware CI with explicit working
+  directories; version-1 monorepos remain fail-safe until migrated.
+- `primary_path` records the primary component while the explicit component list
+  owns fan-out, paths, artifacts, and check contexts.
 
 ## Rejected alternative
 
