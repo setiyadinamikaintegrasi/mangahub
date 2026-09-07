@@ -42,7 +42,7 @@ jobs:
 
       - name: OpenCodeReview
         if: ${{ env.OCR_LLM_AUTH_TOKEN != '' }}
-        uses: alibaba/open-code-review@cbdd77e92ea4e3484f4f1439054c6f03f0665699 # v1.8.9
+        uses: alibaba/open-code-review@af7f9227815ad438aabb2c24cd7c68f4d0e4dc01 # v1.11.4
         with:
           llm_url: ${{ secrets.OCR_LLM_URL }}
           llm_auth_token: ${{ secrets.OCR_LLM_AUTH_TOKEN }}
